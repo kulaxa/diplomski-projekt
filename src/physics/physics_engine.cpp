@@ -4,6 +4,9 @@
 
 
 void PhysicsEngine::addGameObject(float xPos, float yPos, float xAcc, float yAcc, float radius) {
+    if (xPos - radius < -1.0 || xPos + radius > 1.0 || yPos - radius < -1.0 || yPos + radius > 1.0) {
+        throw std::runtime_error("Error: object out of bounds");
+    }
     for (int i = 0; i < numberOfGameObjects; i++){
         if(checkIfContact(gameObjectsXPositions[i], gameObjectsYPositions[i],
                           gameObjectsRadius[i],xPos, yPos, radius)){
@@ -38,19 +41,104 @@ void PhysicsEngine::updateObject(int index, float dt) {
         gameObjectsYAcceleration[index] = 0.0f;
 }
 
+void PhysicsEngine::positionObjectsInGrid() {
+    if (numberOfGameObjects == 0) {
+        return;
+    }
+    for (int & i : grid) {
+        i = -1;
+    }
+    for (int i = 0; i < numberOfGameObjects; i++) {
+        const int cell = getGridPositionFromWorldPosition(gameObjectsXPositions[i], gameObjectsYPositions[i]);
+        int iterations = 0;
+        for (int j = 0; j < maxCellSize; j++) {
+            iterations++;
+            if (grid[cell * maxCellSize + j] == -1) {
+                grid[cell * maxCellSize + j] = i;
+                break;
+            }
+
+        }
+        if (iterations == maxCellSize) {
+            throw std::runtime_error("Error: too many objects in cell");
+        }
+
+    }
+
+}
+
+void PhysicsEngine::solveCollisionsBetweenTwoCells(int cell1, int cell2) {
+
+    for (int i = 0; i < maxCellSize; i++) {
+        if (grid[cell1 * maxCellSize + i] == -1) {
+            break;
+        }
+        for (int j = 0; j < maxCellSize; j++) {
+            if (grid[cell2 * maxCellSize + j] == -1) {
+                break;
+            }
+            solveContact(grid[cell1 * maxCellSize + i], grid[cell2 * maxCellSize + j]);
+        }
+    }
+
+
+}
+
+int PhysicsEngine::calculateAdjacentCells(int cell, int* adjacentCells) {
+    int x = cell % gridSize;
+    int y = cell / gridSize;
+    int adjacentCount = 0;
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            // if (i == 0 && j == 0) {
+            //     continue;
+            // }
+            int x_adj = x + i;
+            int y_adj = y + j;
+            if (x_adj >= 0 && x_adj < gridSize && y_adj >= 0 && y_adj < gridSize) {
+                adjacentCells[adjacentCount] = y_adj * gridSize + x_adj;
+                adjacentCount++;
+            }
+        }
+    }
+    return adjacentCount;
+}
+
+void PhysicsEngine::solveCollisionsBruteForce() {
+    # pragma omp parallel for num_threads(threadCount)
+    for (uint32_t i = 0; i < getNumberOfGameObjects() ; i++){
+        for(uint32_t j=i+1; j< getNumberOfGameObjects(); j++)
+            solveContact(i, j);
+    }
+}
+
+void PhysicsEngine::solveCollisionsGrid() {
+    # pragma omp parallel for num_threads(threadCount)
+    for (int i = 0; i < gridSize * gridSize; i++) {
+        // (int j = 0; j < gridSize * gridSize; j++) {
+        int x = i % gridSize;
+        int y = i / gridSize;
+        for (int iAdj = -1; iAdj <= 1; iAdj++) {
+            for (int jAdj = -1; jAdj <= 1; jAdj++) {
+
+                int x_adj = x + iAdj;
+                int y_adj = y + jAdj;
+                if (x_adj >= 0 && x_adj < gridSize && y_adj >= 0 && y_adj < gridSize) {
+                    solveCollisionsBetweenTwoCells(i, y_adj * gridSize + x_adj);
+                }
+            }
+        }
+    }
+}
 
 
 void PhysicsEngine::update(float dt, int sub_steps) {
     float sub_dt = dt / (float)sub_steps;
     for (uint32_t j = 0; j < sub_steps; j++) {
-        # pragma omp parallel for num_threads(threadCount)
-        for (uint32_t i = 0; i < getNumberOfGameObjects() ; i++){
-            for(uint32_t j=i+1; j< getNumberOfGameObjects(); j++)
-
-                solveContact(i, j);
-
-            }
-        }
+        positionObjectsInGrid();
+        //solveCollisionsBruteForce();
+        solveCollisionsGrid();
+    }
 
     for (uint32_t i = 0; i <  getNumberOfGameObjects() ; i++) {
         updateObject(i, sub_dt);
@@ -58,6 +146,26 @@ void PhysicsEngine::update(float dt, int sub_steps) {
         }
 
     }
+
+int PhysicsEngine::getGridPositionFromWorldPosition(const double x, const double y) const {
+    const int xGrid = static_cast<int>((x + 1.0) * 0.5 * gridSize);
+    const int yGrid = static_cast<int>((y + 1.0) * 0.5 * gridSize);
+    return yGrid * gridSize + xGrid;
+}
+
+
+int PhysicsEngine::getObjectGridPosition(int index) {
+    for (int i = 0; i < maxCellSize * gridSize * gridSize; i++) {
+        if (grid[i] == index) {
+            return i / maxCellSize;
+        }
+    }
+    return -1;
+}
+
+int PhysicsEngine::calculateAdjacentCellsPublicTest(int cell, int *adjacentCells) {
+    return calculateAdjacentCells(cell, adjacentCells);
+}
 
 
 void PhysicsEngine::solveContact(uint32_t atom_1_idx, uint32_t atom_2_idx) {

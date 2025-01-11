@@ -16,7 +16,7 @@ GLuint width = 1000, height = 1000;
 
 std::chrono::duration<double> physicsTime = std::chrono::milliseconds(16);
 
-PhysicsEngine physicsEngine(glm::vec2(0.0, 0.0));
+PhysicsEngine physicsEngine(glm::vec2(0.0, -10.0));
 
 void MainLoopStep();
 
@@ -112,6 +112,45 @@ void periodicTask(std::atomic<bool>& stopFlag) {
     }
 }
 
+int getObjectHovered(double xMousePos, double yMousePos) {
+    for (int i = 0; i < physicsEngine.getNumberOfGameObjects(); i++) {
+        double xPos = physicsEngine.getGameObjectXPosition(i);
+        double yPos = physicsEngine.getGameObjectYPosition(i);
+        double radius = physicsEngine.getGameObjectRadius(i);
+        if (glm::distance(glm::vec2(xPos, yPos), glm::vec2(xMousePos, yMousePos)) < radius) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+void generateObjects(double radius, int numObjects) {
+    double distance = 2 * 1.2 * radius;
+    int numOfObjectsInRow = static_cast<int>(1.95 / distance);
+    int numOfRows = numObjects / numOfObjectsInRow;
+    int leftOver = numObjects % numOfObjectsInRow;
+    if (numOfRows >= numOfObjectsInRow) {
+        numOfRows = numOfObjectsInRow;
+        leftOver = 0;
+    }
+    for (int i = 0; i < numOfRows; i++) {
+        for (int j = 0; j < numOfObjectsInRow; j++) {
+            double xPos = -0.975 + distance * j;
+            double yPos = -0.975 + distance * i;
+
+            physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, radius);
+        }
+    }
+    for (int i = 0; i < leftOver ; i++) {
+        double xPos = -0.975 + distance * i;
+        double yPos = -0.975 + distance * numOfRows;
+
+        physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, radius);
+    }
+
+}
+
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitWindowSize(width, height);
@@ -164,6 +203,8 @@ int main(int argc, char** argv) {
     return 0;
 }
 float gravity = 0.0;
+bool debug = true;
+int objectsToAdd = 1000;
 void MainLoopStep()
 
 {
@@ -184,14 +225,21 @@ void MainLoopStep()
             double y = io.MousePos.y;
             double xPos = 2.0 * x / width - 1.0;
             double yPos = 1.0 - 2.0 * y / height;
-            physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, 0.01);
+            physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, 0.005);
         }
 
-        if(ImGui::SliderFloat("Gravity X", &gravity, -9.8, 9.8)){
+        if(ImGui::SliderInt("Number of objects to add", &objectsToAdd, 0, 50000)){
+        }
+        std::string label = "Add " + std::to_string(objectsToAdd) + " objects";
+        if(ImGui::Button(label.c_str())){
+            generateObjects(0.005, objectsToAdd);
+        }
+        gravity = physicsEngine.getGravity().y;
+        if(ImGui::SliderFloat("Gravity Y", &gravity, -20, 20)){
             physicsEngine.setGravity(glm::vec2(0, gravity));
         }
         int threadCount = physicsEngine.getThreadCount();
-        if(ImGui::SliderInt("Thread count", &threadCount, 1, 8)){
+        if(ImGui::SliderInt("Thread count", &threadCount, 1, 16)){
             physicsEngine.setThreadCount(threadCount);
         }
 
@@ -204,6 +252,36 @@ void MainLoopStep()
         ImGui::Text("FPS: %.1f", fps);
         ImGui::Text("Physics time: %.3f ms", physicsTime.count() * 1000);
 
+        // DEBUG
+        ImGui::Checkbox("Debug", &debug);
+        if (debug) {
+            double x = io.MousePos.x;
+            double y = io.MousePos.y;
+            double xPos = 2.0 * x / width - 1.0;
+            double yPos = 1.0 - 2.0 * y / height;
+            int gridPos = physicsEngine.getGridPositionFromWorldPosition(xPos, yPos);
+            ImGui::Text("Mouse position x= %.3f y= %.3f, Grid coordinates x=%d, y=%d (index = %d)", xPos, yPos, gridPos / 10, gridPos % 10, gridPos);
+            int objectHovered = getObjectHovered(xPos, yPos);
+            if (objectHovered != -1) {
+                double hoveredX = physicsEngine.getGameObjectXPosition(objectHovered);
+                double hoveredY = physicsEngine.getGameObjectYPosition(objectHovered);
+                double hoveredRadius = physicsEngine.getGameObjectRadius(objectHovered);
+                int gridPos = physicsEngine.getObjectGridPosition(objectHovered);
+                ImGui::Text("Hovered %d: x=%.3f y=%.3f, r=%.3f, grid=%d", objectHovered, hoveredX, hoveredY, hoveredRadius,gridPos);
+                if (ImGui::IsMouseDown(0) && !ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered()) {
+                    physicsEngine.setGameObjectXPosition(objectHovered, xPos);
+                    physicsEngine.setGameObjectYPosition(objectHovered, yPos);
+                }
+            }
+            int* adjacentCells = new int[8];
+            int adjacentCount = physicsEngine.calculateAdjacentCellsPublicTest(gridPos, adjacentCells);
+            ImGui::Text("Cell: %d, adjacent count: %d", gridPos, adjacentCount);
+            for (int i = 0; i < adjacentCount; i++) {
+                ImGui::Text("Adjacent cell %d: %d", i, adjacentCells[i]);
+            }
+
+        }
+
         ImGui::End();
 
     }
@@ -215,7 +293,7 @@ void MainLoopStep()
     glClearColor(0.5f, 0.5f, 0.5f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    drawGrid(10);
+    drawGrid(physicsEngine.getGridSize());
 
     display();
 
