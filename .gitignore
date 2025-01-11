@@ -5,5 +5,4 @@ cmake-build*
 *build*
 bin
 results.txt
-imgui
 .idea
