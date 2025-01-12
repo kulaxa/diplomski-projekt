@@ -4,6 +4,11 @@
 #include <omp.h>
 #include <iostream>
 
+extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPositionsY, float *radii,
+                                      float *lastPositionsX, float *lastPositionsY, float *accelerationX,
+                                      float *accelerationY,  int *grid, int sizeOfGrid, int maxCellSize, float xGravity,  float yGravity,
+                                      float dt, int substeps, int numElements);
+
 class PhysicsEngine {
 
 public:
@@ -26,6 +31,8 @@ public:
     glm::vec2 getGravity() { return gravity; }
     void setGravity(glm::vec2 gravity) { this->gravity = gravity; }
 
+    void setUseGPU(bool useGPU) { this->useGPU = useGPU; }
+
     int getNumberOfGameObjects() { return numberOfGameObjects; }
     double getGameObjectXPosition(int index) { return gameObjectsXPositions[index]; }
     double getGameObjectYPosition(int index) { return gameObjectsYPositions[index]; }
@@ -44,14 +51,20 @@ public:
 
     int calculateAdjacentCellsPublicTest(int cell, int *adjacentCells);
 
+    void pauseSimulation() { paused = true; }
+    void resumeSimulation() { paused = false; }
+
+    bool isSimulationPaused() { return paused; }
+
 
 private:
-    const static int maxNumberOfGameObjects = 50000;
+    const static int maxNumberOfGameObjects = 60000;
     glm::vec2 gravity;  // Gravity force
     uint32_t numberOfGameObjects = 0;
     int threadCount = 1;
-    const static int maxCellSize = 40;
-    const static int gridSize = 200;
+    bool useGPU = false;
+    const static int maxCellSize = 100;
+    const static int gridSize = 100;
     float gameObjectsXPositions[maxNumberOfGameObjects];
     float gameObjectsYPositions[maxNumberOfGameObjects];
     float gameObjectsRadius[maxNumberOfGameObjects];
@@ -60,6 +73,10 @@ private:
     float gameObjectsXAcceleration[maxNumberOfGameObjects];
     float gameObjectsYAcceleration[maxNumberOfGameObjects];
     int grid[maxCellSize * gridSize * gridSize];
+
+    int objectGridPositions[maxNumberOfGameObjects];
+
+    bool paused = false;
 
     void solveContact(uint32_t atom_1_idx, uint32_t atom_2_idx);
     bool checkIfContact(double x1, double y1, double radius1, double x2, double y2, double radius2);
@@ -71,6 +88,8 @@ private:
 
     void solveCollisionsBruteForce();
     void solveCollisionsGrid();
+
+    void calculateObjectGridPositions();
 
 };
 

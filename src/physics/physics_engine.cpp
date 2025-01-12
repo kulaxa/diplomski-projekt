@@ -131,21 +131,59 @@ void PhysicsEngine::solveCollisionsGrid() {
     }
 }
 
+void PhysicsEngine::calculateObjectGridPositions() {
+    for (int i = 0; i < getNumberOfGameObjects(); i++) {
+        objectGridPositions[i] = -1;
+    }
+    for (int i = 0; i < gridSize * gridSize; i++) {
+        if (grid[i] == -1) {
+            continue;
+        }
+        for (int j = 0; j < maxCellSize; j++) {
+            if (grid[i * maxCellSize + j] == -1) {
+                break;
+            }
+            objectGridPositions[grid[i * maxCellSize + j]] = i;
+        }
+    }
+}
+
 
 void PhysicsEngine::update(float dt, int sub_steps) {
-    float sub_dt = dt / (float)sub_steps;
-    for (uint32_t j = 0; j < sub_steps; j++) {
-        positionObjectsInGrid();
-        //solveCollisionsBruteForce();
-        solveCollisionsGrid();
+    if (paused) {
+        return;
     }
+    if (useGPU) {
+        cuda_solve_collisions(gameObjectsXPositions, gameObjectsYPositions, gameObjectsRadius,
+                                     gameObjectsXLastPosition, gameObjectsYLastPosition,
+                                     gameObjectsXAcceleration, gameObjectsYAcceleration, grid, gridSize, maxCellSize,
+                                     gravity.x, gravity.y, dt, sub_steps,
+                                     numberOfGameObjects);
+        // for (uint32_t i = 0; i <  getNumberOfGameObjects() ; i++) {
+        //     updateObject(i, dt);
+        //     resolveCollisionsWithWalls(i);
+        // }
 
-    for (uint32_t i = 0; i <  getNumberOfGameObjects() ; i++) {
-        updateObject(i, sub_dt);
-        resolveCollisionsWithWalls(i);
+    }
+    else {
+        float sub_dt = dt / (float)sub_steps;
+        for (uint32_t j = 0; j < sub_steps; j++) {
+            positionObjectsInGrid();
+            //solveCollisionsBruteForce();
+            solveCollisionsGrid();
+
+            for (uint32_t i = 0; i <  getNumberOfGameObjects() ; i++) {
+                updateObject(i, sub_dt);
+                resolveCollisionsWithWalls(i);
+            }
         }
 
+        calculateObjectGridPositions();
+
+
+
     }
+}
 
 int PhysicsEngine::getGridPositionFromWorldPosition(const double x, const double y) const {
     const int xGrid = static_cast<int>((x + 1.0) * 0.5 * gridSize);
@@ -155,12 +193,7 @@ int PhysicsEngine::getGridPositionFromWorldPosition(const double x, const double
 
 
 int PhysicsEngine::getObjectGridPosition(int index) {
-    for (int i = 0; i < maxCellSize * gridSize * gridSize; i++) {
-        if (grid[i] == index) {
-            return i / maxCellSize;
-        }
-    }
-    return -1;
+    return objectGridPositions[index];
 }
 
 int PhysicsEngine::calculateAdjacentCellsPublicTest(int cell, int *adjacentCells) {
