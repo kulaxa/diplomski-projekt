@@ -210,8 +210,8 @@ int main(int argc, char** argv) {
 float gravity = 0.0;
 bool debug = true;
 bool useGpu = false;
-int objectsToAdd = 10000;
-float objectSize = 0.01;
+int objectsToAdd = 60000;
+float objectSize = 0.003;
 void MainLoopStep()
 
 {
