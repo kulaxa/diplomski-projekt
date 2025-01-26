@@ -75,7 +75,7 @@ private:
     int threadCount = 1;
     bool useGPU = false;
     const static int maxCellSize = 100;
-    const static int gridSize = 50;
+    const static int gridSize = 200;
     float gameObjectsXPositions[maxNumberOfGameObjects];
     float gameObjectsYPositions[maxNumberOfGameObjects];
     float gameObjectsRadius[maxNumberOfGameObjects];

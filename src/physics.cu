@@ -117,27 +117,36 @@ __global__ void positionObjectsInGrid(float *xPos, float *yPos, int *grid, int *
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
 
-//    if (numElements == 0 || i >= sizeOfGrid * sizeOfGrid) {
-//        return;
-//    }
-        if (i >= numElements) {
-            return;
-        }
-    const int xGrid = floor((xPos[i] + 1.0) * 0.5 * sizeOfGrid);
-    const int yGrid = floor((yPos[i] + 1.0) * 0.5 * sizeOfGrid);
-    const int cell = yGrid * sizeOfGrid + xGrid;
-          int iterations = 0;
-          for (int l = 0; l < maxCellSize; l++) {
+    if (numElements == 0 || i >= sizeOfGrid * sizeOfGrid) {
+        return;
+    }
+        // if (i != 0) {
+        //     return;
+        // }
+    for (int index = 0; index < numElements; index++) {
+        // const int xGrid = floor((xPos[index] + 1.0) * 0.5 * sizeOfGrid);
+        // const int yGrid = floor((yPos[index] + 1.0) * 0.5 * sizeOfGrid);
+        // const int cell = yGrid * sizeOfGrid + xGrid;
+        int cell = grid_positions[index];
+        int iterations = 0;
+        for (int l = 0; l < maxCellSize; l++) {
             iterations++;
             if (grid[cell * maxCellSize + l] == -1) {
-              atomicAdd(grid + cell * maxCellSize + l, 1 + i);
-                atomicAdd(grid_positions + i, cell + 1);
-              break;
+                grid[cell * maxCellSize + l] = index;
+                 //printf("Adding object %d to cell %d\n", index, cell);
+                 atomicAdd(grid_positions + i, cell + 1);
+                break;
             }
-          }
-          if (iterations == maxCellSize) {
-            printf("Max cell size reached in cell %d when adding object %d\n", cell, i);
-          }
+
+            // atomicAdd(grid + cell * maxCellSize + l, 1 + i);
+            // printf("Adding object %d to cell %d\n", i, cell);
+            // atomicAdd(grid_positions + i, cell + 1);
+
+        }
+        if (iterations == maxCellSize) {
+            printf("Max cell size reached in cell %d when adding object %d\n", cell, index);
+        }
+    }
 
 
 
@@ -227,6 +236,7 @@ extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPosition
     float *d_result_x = NULL; // output
     float *d_result_y = NULL; // output
     int *d_grid_positions = NULL;
+    int *lock = NULL;
 
 
     cudaMalloc((void **)&d_curr_positions_x, numElements * sizeof(float));
@@ -241,6 +251,8 @@ extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPosition
     cudaMalloc((void **)&d_grid,  sizeOfGrid * sizeOfGrid * maxCellSize * sizeof(int));
     cudaMalloc((void **)&d_grid_res,  sizeOfGrid * sizeOfGrid * maxCellSize* sizeof(int));
     cudaMalloc((void **)&d_grid_positions, numElements * sizeof(int));
+
+    cudaMalloc((void **)&lock, sizeOfGrid * sizeOfGrid * maxCellSize * sizeof(int));
 
     cudaMemcpy(d_curr_positions_x, currPositionsX, numElements * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_curr_positions_y, currPositionsY, numElements * sizeof(float), cudaMemcpyHostToDevice);
@@ -268,7 +280,7 @@ extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPosition
         cudaMemset(d_grid_res, -1, sizeOfGrid * sizeOfGrid * maxCellSize * sizeof(int));
         cudaMemset(d_grid_positions, -1, numElements * sizeof(int));
 
-      //  calculateCellForObject<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_grid_positions, sizeOfGrid, maxCellSize, numElements);
+        calculateCellForObject<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_grid_positions, sizeOfGrid, maxCellSize, numElements);
 
         positionObjectsInGrid<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_grid, d_grid_positions, sizeOfGrid, maxCellSize, numElements);
         cudaDeviceSynchronize();
@@ -278,9 +290,9 @@ extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPosition
         solveContactGrid<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_result_x, d_result_y,
                                               d_radii, d_grid, sizeOfGrid, maxCellSize, numElements);
         cudaDeviceSynchronize();
-       // cudaMemcpy(d_curr_positions_x, d_result_x, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
-       // cudaMemcpy(d_curr_positions_y, d_result_y, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
-
+        //cudaMemcpy(d_curr_positions_x, d_result_x, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
+        //cudaMemcpy(d_curr_positions_y, d_result_y, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
+        //
         update<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_last_positions_x,
                                    d_last_positions_y, d_acceleration_x, d_acceleration_y,
                                    xGravity, yGravity, sub_dt,
@@ -289,6 +301,21 @@ extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPosition
         cudaDeviceSynchronize();
 
     }
+
+    // print entire d_grid
+    // for (int i = 0; i < sizeOfGrid * sizeOfGrid; i++) {
+    //     if (grid[i * maxCellSize] == -1) {
+    //         continue;
+    //     }
+    //     printf("Cell %d: ", i);
+    //     for (int j = 0; j < maxCellSize; j++) {
+    //         if (grid[i * maxCellSize + j] == -1) {
+    //             break;
+    //         }
+    //         printf("%d ", grid[i * maxCellSize + j]);
+    //     }
+    //     printf("\n");
+    // }
 
 
 
