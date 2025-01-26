@@ -157,17 +157,17 @@ void PhysicsEngine::update(float dt, int sub_steps) {
         return;
     }
     if (useGPU) {
-//        cuda_solve_collisions(gameObjectsXPositions, gameObjectsYPositions, gameObjectsRadius,
-//                                     gameObjectsXLastPosition, gameObjectsYLastPosition,
-//                                     gameObjectsXAcceleration, gameObjectsYAcceleration, grid, gridSize, maxCellSize,
-//                                     gravity.x, gravity.y, dt, sub_steps,
-//                                     numberOfGameObjects);
-        cuda_solve_collisions_cpu(
-                gameObjectsXPositions, gameObjectsYPositions, gameObjectsRadius,
-                gameObjectsXLastPosition, gameObjectsYLastPosition, gameObjectsXAcceleration,
-                gameObjectsYAcceleration, grid, gridSize, objectGridPositions, maxCellSize, gravity.x, gravity.y,
-                dt, sub_steps, numberOfGameObjects
-                );
+        cuda_solve_collisions(gameObjectsXPositions, gameObjectsYPositions, gameObjectsRadius,
+                                     gameObjectsXLastPosition, gameObjectsYLastPosition,
+                                     gameObjectsXAcceleration, gameObjectsYAcceleration, grid, objectGridPositions, gridSize, maxCellSize,
+                                     gravity.x, gravity.y, dt, sub_steps,
+                                     numberOfGameObjects);
+        // cuda_solve_collisions_cpu(
+        //         gameObjectsXPositions, gameObjectsYPositions, gameObjectsRadius,
+        //         gameObjectsXLastPosition, gameObjectsYLastPosition, gameObjectsXAcceleration,
+        //         gameObjectsYAcceleration, grid, gridSize, objectGridPositions, maxCellSize, gravity.x, gravity.y,
+        //         dt, sub_steps, numberOfGameObjects
+        //         );
 
 
     }
@@ -359,8 +359,8 @@ void PhysicsEngine::cuda_solve_collisions_cpu(float *currPositionsX, float *curr
 //        cudaMemcpy(d_result_x, d_curr_positions_x, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
 //        cudaMemcpy(d_result_y, d_curr_positions_y, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
 
-        memcpy(d_result_x, d_curr_positions_x, numElements * sizeof(float));
-       memcpy(d_result_y, d_curr_positions_y, numElements * sizeof(float));
+        //memcpy(d_result_x, d_curr_positions_x, numElements * sizeof(float));
+       //memcpy(d_result_y, d_curr_positions_y, numElements * sizeof(float));
 
 
 //        solveContactGrid<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_result_x, d_result_y,
@@ -371,8 +371,8 @@ void PhysicsEngine::cuda_solve_collisions_cpu(float *currPositionsX, float *curr
 //        cudaMemcpy(d_curr_positions_x, d_result_x, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
 //        cudaMemcpy(d_curr_positions_y, d_result_y, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
 
-        memcpy(d_curr_positions_x, d_result_x, numElements * sizeof(float));
-        memcpy(d_curr_positions_y, d_result_y, numElements * sizeof(float));
+       // memcpy(d_curr_positions_x, d_result_x, numElements * sizeof(float));
+       // memcpy(d_curr_positions_y, d_result_y, numElements * sizeof(float));
 //
 //        update<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_last_positions_x,
 //                d_last_positions_y, d_acceleration_x, d_acceleration_y,
@@ -617,10 +617,10 @@ PhysicsEngine::cuda_solveContactGrid_cpu(float *xPos, float *yPos, float *xPosRe
 //                                atomicAdd(xPosRes + obj2_idx, +col_vec_x);
 //                                atomicAdd(yPosRes + obj2_idx, +col_vec_y);
 
-                                xPosRes[obj1_idx] -= col_vec_x; // TODO: make this atomic operation
-                                yPosRes[obj1_idx] -= col_vec_y; // TODO: make this atomic operation
-                                //xPosRes[obj2_idx] += col_vec_x; // TODO: make this atomic operation
-                                //yPosRes[obj2_idx] += col_vec_y; // TODO: make this atomic operation
+                                xPos[obj1_idx] -= col_vec_x; // TODO: make this atomic operation
+                                yPos[obj1_idx] -= col_vec_y; // TODO: make this atomic operation
+                                xPos[obj2_idx] += col_vec_x; // TODO: make this atomic operation
+                                yPos[obj2_idx] += col_vec_y; // TODO: make this atomic operation
 
                             }
                         }

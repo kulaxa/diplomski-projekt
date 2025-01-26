@@ -6,7 +6,7 @@
 
 extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPositionsY, float *radii,
                                       float *lastPositionsX, float *lastPositionsY, float *accelerationX,
-                                      float *accelerationY,  int *grid, int sizeOfGrid, int maxCellSize, float xGravity,  float yGravity,
+                                      float *accelerationY,  int *grid, int *gridPositions,int sizeOfGrid, int maxCellSize, float xGravity,  float yGravity,
                                       float dt, int substeps, int numElements);
 
 class PhysicsEngine {
@@ -75,7 +75,7 @@ private:
     int threadCount = 1;
     bool useGPU = false;
     const static int maxCellSize = 100;
-    const static int gridSize = 150;
+    const static int gridSize = 50;
     float gameObjectsXPositions[maxNumberOfGameObjects];
     float gameObjectsYPositions[maxNumberOfGameObjects];
     float gameObjectsRadius[maxNumberOfGameObjects];

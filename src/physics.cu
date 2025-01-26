@@ -131,11 +131,12 @@ __global__ void positionObjectsInGrid(float *xPos, float *yPos, int *grid, int *
             iterations++;
             if (grid[cell * maxCellSize + l] == -1) {
               atomicAdd(grid + cell * maxCellSize + l, 1 + i);
+                atomicAdd(grid_positions + i, cell + 1);
               break;
             }
           }
           if (iterations == maxCellSize) {
-            printf("Max cell size reached in cell %d when adding object %d\n", i, k);
+            printf("Max cell size reached in cell %d when adding object %d\n", cell, i);
           }
 
 
@@ -190,13 +191,13 @@ __global__ void solveContactGrid(float *xPos, float *yPos, float *xPosRes, float
                             if (dist2 > eps && dist2 < (radius1 + radius2) * (radius1 + radius2)) {
                                 const float dist          = sqrt(dist2);
                                 const float delta  = response_coef * 0.5f * (radius1 + radius2 - dist);
-                                float col_vec_x = (pos2_x - pos1_x) / dist * delta;
-                                float col_vec_y = (pos2_y - pos1_y) / dist * delta;
+                                double col_vec_x = (pos2_x - pos1_x) / dist * delta;
+                                double col_vec_y = (pos2_y - pos1_y) / dist * delta;
 
-                                atomicAdd(xPosRes + obj1_idx, -col_vec_x);
-                                atomicAdd(yPosRes + obj1_idx, -col_vec_y);
-                                //atomicAdd(xPosRes + obj2_idx, +col_vec_x);
-                                //atomicAdd(yPosRes + obj2_idx, +col_vec_y);
+                                atomicAdd(xPos + obj1_idx, -col_vec_x);
+                                atomicAdd(yPos + obj1_idx, -col_vec_y);
+                                atomicAdd(xPos + obj2_idx, +col_vec_x);
+                                atomicAdd(yPos + obj2_idx, +col_vec_y);
                             }
                        }
 
@@ -212,7 +213,7 @@ __global__ void solveContactGrid(float *xPos, float *yPos, float *xPosRes, float
 
 extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPositionsY, float *radii,
                                       float *lastPositionsX, float *lastPositionsY, float *accelerationX,
-                                      float *accelerationY, int *grid,  int sizeOfGrid, int maxCellSize, float xGravity,  float yGravity,
+                                      float *accelerationY, int *grid,  int * gridPositions, int sizeOfGrid, int maxCellSize, float xGravity,  float yGravity,
                                       float dt, int substeps, int numElements){
     float *d_curr_positions_x = NULL; // input
     float *d_curr_positions_y= NULL; // input
@@ -265,19 +266,20 @@ extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPosition
 //
         cudaMemset(d_grid, -1, sizeOfGrid * sizeOfGrid * maxCellSize * sizeof(int));
         cudaMemset(d_grid_res, -1, sizeOfGrid * sizeOfGrid * maxCellSize * sizeof(int));
+        cudaMemset(d_grid_positions, -1, numElements * sizeof(int));
 
-        calculateCellForObject<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_grid_positions, sizeOfGrid, maxCellSize, numElements);
+      //  calculateCellForObject<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_grid_positions, sizeOfGrid, maxCellSize, numElements);
 
         positionObjectsInGrid<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_grid, d_grid_positions, sizeOfGrid, maxCellSize, numElements);
         cudaDeviceSynchronize();
 
-        cudaMemcpy(d_result_x, d_curr_positions_x, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
-        cudaMemcpy(d_result_y, d_curr_positions_y, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
+        //cudaMemcpy(d_result_x, d_curr_positions_x, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
+        //cudaMemcpy(d_result_y, d_curr_positions_y, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
         solveContactGrid<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_result_x, d_result_y,
                                               d_radii, d_grid, sizeOfGrid, maxCellSize, numElements);
         cudaDeviceSynchronize();
-        cudaMemcpy(d_curr_positions_x, d_result_x, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
-        cudaMemcpy(d_curr_positions_y, d_result_y, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
+       // cudaMemcpy(d_curr_positions_x, d_result_x, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
+       // cudaMemcpy(d_curr_positions_y, d_result_y, numElements * sizeof(float), cudaMemcpyDeviceToDevice);
 
         update<<<gridSize2, blockSize2>>>(d_curr_positions_x, d_curr_positions_y, d_last_positions_x,
                                    d_last_positions_y, d_acceleration_x, d_acceleration_y,
@@ -300,6 +302,7 @@ extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPosition
     cudaMemcpy(accelerationY, d_acceleration_y, numElements * sizeof(float), cudaMemcpyDeviceToHost);
 
     cudaMemcpy(grid, d_grid, sizeOfGrid * sizeOfGrid * maxCellSize*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(gridPositions, d_grid_positions, numElements * sizeof(int), cudaMemcpyDeviceToHost);
 
     cudaFree(d_curr_positions_x);
     cudaFree(d_curr_positions_y);
