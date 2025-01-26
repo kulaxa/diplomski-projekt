@@ -102,7 +102,7 @@ void periodicTask(std::atomic<bool>& stopFlag) {
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        task(0.005f);
+        task(0.015f);
         auto end = std::chrono::high_resolution_clock::now();
         // Calculate the duration
         std::chrono::duration<double> elapsed = end - start;
@@ -210,7 +210,7 @@ int main(int argc, char** argv) {
 float gravity = 0.0;
 bool debug = true;
 bool useGpu = false;
-int objectsToAdd = 30000;
+int objectsToAdd = 10000;
 float objectSize = 0.01;
 void MainLoopStep()
 
@@ -285,8 +285,8 @@ void MainLoopStep()
                 double hoveredX = physicsEngine.getGameObjectXPosition(objectHovered);
                 double hoveredY = physicsEngine.getGameObjectYPosition(objectHovered);
                 double hoveredRadius = physicsEngine.getGameObjectRadius(objectHovered);
-                int gridPos = physicsEngine.getObjectGridPosition(objectHovered);
-                ImGui::Text("Hovered %d: x=%.3f y=%.3f, r=%.3f, grid=%d", objectHovered, hoveredX, hoveredY, hoveredRadius,gridPos);
+                int gridPosObj = physicsEngine.getObjectGridPosition(objectHovered);
+                ImGui::Text("Hovered %d: x=%.3f y=%.3f, r=%.3f, grid=%d", objectHovered, hoveredX, hoveredY, hoveredRadius, gridPosObj);
                 // if (ImGui::IsMouseDown(0) && !ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered()) {
                 //     physicsEngine.setGameObjectXPosition(objectHovered, xPos);
                 //     physicsEngine.setGameObjectYPosition(objectHovered, yPos);

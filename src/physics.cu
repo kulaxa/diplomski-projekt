@@ -14,8 +14,8 @@ __global__ void update(float *xCurrPos, float *yCurrPos, float *xLastPos, float 
 
         const float curr_pos_x = xCurrPos[i];
         const float curr_pos_y = yCurrPos[i];
-        double last_update_move_x = curr_pos_x - xLastPos[i];
 
+        double last_update_move_x = curr_pos_x - xLastPos[i];
         double last_update_move_y = curr_pos_y - yLastPos[i];
 
          double new_position_x =
@@ -117,27 +117,30 @@ __global__ void positionObjectsInGrid(float *xPos, float *yPos, int *grid, int *
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
 
-    if (numElements == 0 || i >= sizeOfGrid * sizeOfGrid) {
-        return;
-    }
-
-      for (int k = 0; k < numElements; k++){
-        if (grid_positions[k] == i){
+//    if (numElements == 0 || i >= sizeOfGrid * sizeOfGrid) {
+//        return;
+//    }
+        if (i >= numElements) {
+            return;
+        }
+    const int xGrid = floor((xPos[i] + 1.0) * 0.5 * sizeOfGrid);
+    const int yGrid = floor((yPos[i] + 1.0) * 0.5 * sizeOfGrid);
+    const int cell = yGrid * sizeOfGrid + xGrid;
           int iterations = 0;
           for (int l = 0; l < maxCellSize; l++) {
             iterations++;
-            if (grid[i * maxCellSize + l] == -1) {
-              atomicAdd(grid + i * maxCellSize + l, 1 + k);
+            if (grid[cell * maxCellSize + l] == -1) {
+              atomicAdd(grid + cell * maxCellSize + l, 1 + i);
               break;
             }
           }
           if (iterations == maxCellSize) {
             printf("Max cell size reached in cell %d when adding object %d\n", i, k);
           }
-        }
 
 
-    }
+
+
 
 }
 
@@ -171,9 +174,9 @@ __global__ void solveContactGrid(float *xPos, float *yPos, float *xPosRes, float
                             }
                             int obj1_idx = grid[cell1 * maxCellSize + iCell];
                             int obj2_idx = grid[cell2 * maxCellSize + jCell];
-//                            if(obj1_idx == obj2_idx) {
-//                                return;
-//                            }
+                             if (obj1_idx == obj2_idx) {
+                                 continue;
+                             }
                             constexpr float response_coef = 1.0f;
                             constexpr float eps           = 0.00001f;
                             double pos1_x = xPos[obj1_idx];
@@ -192,8 +195,8 @@ __global__ void solveContactGrid(float *xPos, float *yPos, float *xPosRes, float
 
                                 atomicAdd(xPosRes + obj1_idx, -col_vec_x);
                                 atomicAdd(yPosRes + obj1_idx, -col_vec_y);
-                                atomicAdd(xPosRes + obj2_idx, +col_vec_x);
-                                atomicAdd(yPosRes + obj2_idx, +col_vec_y);
+                                //atomicAdd(xPosRes + obj2_idx, +col_vec_x);
+                                //atomicAdd(yPosRes + obj2_idx, +col_vec_y);
                             }
                        }
 
