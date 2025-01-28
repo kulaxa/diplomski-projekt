@@ -67,37 +67,6 @@ __global__ void update(float *xCurrPos, float *yCurrPos, float *xLastPos, float 
 
 }
 
-__global__ void solveContact(float *xPos, float *yPos, float *xPosRes, float *yPosRes, float *radii, int numElements) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int j = blockDim.y * blockIdx.y + threadIdx.y;
-
-
-if (i < numElements && j < numElements && i != j) {
-        constexpr float response_coef = 1.10f;
-        constexpr float eps           = 0.00001f;
-        float pos1_x = xPos[i];
-        float pos1_y = yPos[i];
-        float pos2_x = xPos[j];
-        float pos2_y = yPos[j];
-        float radius1 = radii[i];
-        float radius2 = radii[j];
-
-
-        const float dist2 = (pos2_x - pos1_x) * (pos2_x - pos1_x) + (pos2_y - pos1_y) * (pos2_y - pos1_y);
-        if (dist2 > eps && dist2 < (radius1 + radius2) * (radius1 + radius2)) {
-            const float dist          = sqrt(dist2);
-            const float delta  = response_coef * 0.5f * (radius1 + radius2 - dist);
-            float col_vec_x = (pos2_x - pos1_x) / dist * delta;
-            float col_vec_y = (pos2_y - pos1_y) / dist * delta;
-
-            atomicAdd(xPosRes + i, -col_vec_x);
-            atomicAdd(yPosRes + i, -col_vec_y);
-        }
-
-
-
-    }
-}
 
 __global__ void calculateCellForObject(float *xPos, float *yPos, int  *gridPositions, int sizeOfGrid, int maxCellSize, int numElements) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -117,9 +86,8 @@ __global__ void positionObjectsInGrid(float *xPos, float *yPos, int *grid, int *
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
 
-    // if (numElements == 0 || i >= sizeOfGrid * sizeOfGrid) {
-    //     return;
-    // }
+
+
     if (i >= numElements) {
         return;
     }
@@ -268,7 +236,7 @@ extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPosition
 
 
 
-    float blockSize = 256;
+    int blockSize = 256;
     int gridSizeObjects = (numElements + blockSize - 1) / blockSize;
     int gridSizeGrid = (sizeOfGrid * sizeOfGrid + blockSize - 1) / blockSize;
     float sub_dt = dt / (float)substeps;
@@ -281,7 +249,7 @@ extern "C" void cuda_solve_collisions(float *currPositionsX, float *currPosition
 
         calculateCellForObject<<<gridSizeObjects, blockSize>>>(d_curr_positions_x, d_curr_positions_y, d_grid_positions, sizeOfGrid, maxCellSize, numElements);
         //
-        positionObjectsInGrid<<<gridSizeGrid, blockSize>>>(d_curr_positions_x, d_curr_positions_y, d_grid, d_grid_positions, sizeOfGrid, maxCellSize, numElements);
+        positionObjectsInGrid<<<gridSizeObjects, blockSize>>>(d_curr_positions_x, d_curr_positions_y, d_grid, d_grid_positions, sizeOfGrid, maxCellSize, numElements);
         cudaDeviceSynchronize();
 
         solveContactGrid<<<gridSizeGrid, blockSize>>>(d_curr_positions_x, d_curr_positions_y, d_result_x, d_result_y,

@@ -26,6 +26,8 @@ public:
 
     void addGameObject(float xPos, float yPos, float xAcc, float yAcc, float radius);
 
+    void addGameObjects(std::vector<glm::vec2> gameObjects, float radius);
+
     void update(float dt, int sub_steps);
 
     glm::vec2 getGravity() { return gravity; }
@@ -69,13 +71,13 @@ public:
 
 
 private:
-    const static int maxNumberOfGameObjects = 100000;
+    const static int maxNumberOfGameObjects = 200000;
     glm::vec2 gravity;  // Gravity force
     uint32_t numberOfGameObjects = 0;
     int threadCount = 1;
     bool useGPU = false;
-    const static int maxCellSize = 100;
-    const static int gridSize = 300;
+    const static int maxCellSize = 40;
+    const static int gridSize = 350;
     float gameObjectsXPositions[maxNumberOfGameObjects];
     float gameObjectsYPositions[maxNumberOfGameObjects];
     float gameObjectsRadius[maxNumberOfGameObjects];

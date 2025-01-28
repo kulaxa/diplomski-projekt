@@ -3,17 +3,22 @@
 #include <cstring>
 #include "physics_engine.h"
 
+#include <random>
+
 
 void PhysicsEngine::addGameObject(float xPos, float yPos, float xAcc, float yAcc, float radius) {
     if (xPos - radius < -1.0 || xPos + radius > 1.0 || yPos - radius < -1.0 || yPos + radius > 1.0) {
         throw std::runtime_error("Error: object out of bounds");
     }
+    // # pragma omp parallel
     for (int i = 0; i < numberOfGameObjects; i++){
         if(checkIfContact(gameObjectsXPositions[i], gameObjectsYPositions[i],
                           gameObjectsRadius[i],xPos, yPos, radius)){
+
             return;
         }
     }
+
     gameObjectsXPositions[numberOfGameObjects] = xPos;
     gameObjectsYPositions[numberOfGameObjects] = yPos;
     gameObjectsXLastPosition[numberOfGameObjects] = xPos;
@@ -22,6 +27,23 @@ void PhysicsEngine::addGameObject(float xPos, float yPos, float xAcc, float yAcc
     gameObjectsYAcceleration[numberOfGameObjects] = yAcc;
     gameObjectsRadius[numberOfGameObjects] = radius;
     numberOfGameObjects++;
+}
+
+void PhysicsEngine::addGameObjects(std::vector<glm::vec2> gameObjects, float radius) {
+    //
+
+    std::random_device rd;  // Random device to seed the generator
+    std::mt19937 gen(rd()); // Mersenne Twister generator
+    std::uniform_real_distribution<> dis(-100.0, 100.0); // Uniform distribution between -100 and 100
+
+    // Generate a random double
+    double random_value = dis(gen);
+    for (const auto &gameObject : gameObjects) {
+        // normal distrubution -100 to 100
+        double random_accy = dis(gen);
+        double  random_accx = dis(gen);
+        addGameObject(gameObject.x, gameObject.y, random_accx, random_accy, radius);
+    }
 }
 
 void PhysicsEngine::updateObject(int index, float dt) {

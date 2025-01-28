@@ -16,7 +16,7 @@ GLuint width = 1000, height = 1000;
 
 std::chrono::duration<double> physicsTime = std::chrono::milliseconds(16);
 
-PhysicsEngine physicsEngine(glm::vec2(0.0, -1.0));
+PhysicsEngine physicsEngine(glm::vec2(0.0, -0.0));
 
 void MainLoopStep();
 
@@ -139,20 +139,22 @@ void generateObjects(double radius, int numObjects) {
         numOfRows = numOfObjectsInRow;
         leftOver = 0;
     }
+
+    std::vector<glm::vec2> gameObjectsPositions = {};
     for (int i = 0; i < numOfRows; i++) {
         for (int j = 0; j < numOfObjectsInRow; j++) {
             double xPos = -(1.0 - distance) + distance * j;
             double yPos = -(1.0 - distance) + distance * i;
-
-            physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, radius);
+            gameObjectsPositions.push_back(glm::vec2(xPos, yPos));
         }
     }
     for (int i = 0; i < leftOver ; i++) {
         double xPos = -(1.0 - distance) + distance * i;
         double yPos = -(1.0 - distance) + distance * numOfRows;
-
-        physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, radius);
+        gameObjectsPositions.push_back(glm::vec2(xPos, yPos));
     }
+
+    physicsEngine.addGameObjects(gameObjectsPositions, radius);
 
 }
 
@@ -210,8 +212,8 @@ int main(int argc, char** argv) {
 float gravity = 0.0;
 bool debug = true;
 bool useGpu = false;
-int objectsToAdd = 60000;
-float objectSize = 0.003;
+int objectsToAdd = 190000;
+float objectSize = 0.002;
 void MainLoopStep()
 
 {
@@ -243,7 +245,7 @@ void MainLoopStep()
             physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, objectSize);
         }
         ImGui::SliderFloat("Object size", &objectSize, 0.001, 0.05);
-        if(ImGui::SliderInt("Number of objects to add", &objectsToAdd, 0, 50000)){
+        if(ImGui::SliderInt("Number of objects to add", &objectsToAdd, 0, 200000)){
         }
         std::string label = "Add " + std::to_string(objectsToAdd) + " objects";
         if(ImGui::Button(label.c_str())){
