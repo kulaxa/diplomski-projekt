@@ -3,8 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CUDA_ARCHITECTURES 75)
 set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
 
-project(Projekt CXX CUDA)
-#Project(Projekt CXX)
+Project(Projekt CXX)
 
 # Set C++ version
 set(CMAKE_CXX_STANDARD 17)
@@ -19,7 +18,6 @@ find_package(GLUT REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenMP REQUIRED)
-find_package(CUDAToolkit REQUIRED)
 
 
 
@@ -32,7 +30,6 @@ endif(NOT CMAKE_BUILD_TYPE)
 set(SOURCE_FILES
         src/main.cpp
         src/physics/physics_engine.cpp
-        src/physics.cu
         imgui/imgui.cpp
         imgui/imgui_draw.cpp
         imgui/imconfig.h
@@ -65,7 +62,6 @@ target_link_libraries(${PROJECT_NAME}
         GL GLU glut
         OpenMP::OpenMP_CXX
         ${CMAKE_THREAD_LIBS_INIT}
-        CUDA::cudart
 
 )
 

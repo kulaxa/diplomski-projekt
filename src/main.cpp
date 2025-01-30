@@ -74,7 +74,7 @@ void display() {
             double x = physicsEngine.getGameObjectXPosition(i);
             double y = physicsEngine.getGameObjectYPosition(i);
             double radius = physicsEngine.getGameObjectRadius(i);
-            drawCircle(x,  y, radius, 3, color);
+            drawCircle(x,  y, radius, 10, color);
         }
 
     }
@@ -213,8 +213,8 @@ int main(int argc, char** argv) {
 float gravity = 0.0;
 bool debug = true;
 bool useGpu = false;
-int objectsToAdd = 190000;
-float objectSize = 0.003;
+int objectsToAdd = 10000;
+float objectSize = 0.008;
 void MainLoopStep()
 
 {

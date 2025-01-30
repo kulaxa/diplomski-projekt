@@ -178,22 +178,7 @@ void PhysicsEngine::update(float dt, int sub_steps) {
     if (paused) {
         return;
     }
-    if (useGPU) {
-        cuda_solve_collisions(gameObjectsXPositions, gameObjectsYPositions, gameObjectsRadius,
-                                     gameObjectsXLastPosition, gameObjectsYLastPosition,
-                                     gameObjectsXAcceleration, gameObjectsYAcceleration, grid, objectGridPositions, gridSize, maxCellSize,
-                                     gravity.x, gravity.y, dt, sub_steps,
-                                     numberOfGameObjects);
-        // cuda_solve_collisions_cpu(
-        //         gameObjectsXPositions, gameObjectsYPositions, gameObjectsRadius,
-        //         gameObjectsXLastPosition, gameObjectsYLastPosition, gameObjectsXAcceleration,
-        //         gameObjectsYAcceleration, grid, gridSize, objectGridPositions, maxCellSize, gravity.x, gravity.y,
-        //         dt, sub_steps, numberOfGameObjects
-        //         );
 
-
-    }
-    else {
         float sub_dt = dt / (float)sub_steps;
         for (uint32_t j = 0; j < sub_steps; j++) {
 //
@@ -214,8 +199,6 @@ void PhysicsEngine::update(float dt, int sub_steps) {
 // calculateObjectGridPositions();
 
 
-
-    }
 }
 
 int PhysicsEngine::getGridPositionFromWorldPosition(const double x, const double y) const {
