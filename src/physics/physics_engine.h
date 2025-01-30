@@ -71,13 +71,13 @@ public:
 
 
 private:
-    const static int maxNumberOfGameObjects = 200000;
+    const static int maxNumberOfGameObjects = 1000001;
     glm::vec2 gravity;  // Gravity force
     uint32_t numberOfGameObjects = 0;
     int threadCount = 1;
     bool useGPU = false;
     const static int maxCellSize = 40;
-    const static int gridSize = 350;
+    const static int gridSize = 150;
     float gameObjectsXPositions[maxNumberOfGameObjects];
     float gameObjectsYPositions[maxNumberOfGameObjects];
     float gameObjectsRadius[maxNumberOfGameObjects];

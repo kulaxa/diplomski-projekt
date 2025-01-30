@@ -16,7 +16,7 @@ GLuint width = 1000, height = 1000;
 
 std::chrono::duration<double> physicsTime = std::chrono::milliseconds(16);
 
-PhysicsEngine physicsEngine(glm::vec2(0.0, -0.0));
+PhysicsEngine physicsEngine(glm::vec2(0.0, -0.1));
 
 void MainLoopStep();
 
@@ -64,18 +64,19 @@ void display() {
     float red = 0.0, green = 0.0, blue = 0.0;
 
     for (int i = 0; i < physicsEngine.getNumberOfGameObjects(); ++i) {
-        glm::vec3 color = glm::vec3(0.0, 0.0, 0.0);
+            glm::vec3 color = glm::vec3(0.0, 0.0, 0.0);
 
-        int gridPosition = physicsEngine.getObjectGridPosition(i);
-        if (gridPosition == -1) {
-            color = glm::vec3(1.0, 0.0, 0.0);
+            int gridPosition = physicsEngine.getObjectGridPosition(i);
+            if (gridPosition == -1) {
+                color = glm::vec3(1.0, 0.0, 0.0);
+            }
+
+            double x = physicsEngine.getGameObjectXPosition(i);
+            double y = physicsEngine.getGameObjectYPosition(i);
+            double radius = physicsEngine.getGameObjectRadius(i);
+            drawCircle(x,  y, radius, 3, color);
         }
 
-        double x = physicsEngine.getGameObjectXPosition(i);
-        double y = physicsEngine.getGameObjectYPosition(i);
-        double radius = physicsEngine.getGameObjectRadius(i);
-        drawCircle(x,  y, radius, 10, color);
-        }
     }
 
 
@@ -213,7 +214,7 @@ float gravity = 0.0;
 bool debug = true;
 bool useGpu = false;
 int objectsToAdd = 190000;
-float objectSize = 0.002;
+float objectSize = 0.003;
 void MainLoopStep()
 
 {
@@ -245,14 +246,15 @@ void MainLoopStep()
             physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, objectSize);
         }
         ImGui::SliderFloat("Object size", &objectSize, 0.001, 0.05);
-        if(ImGui::SliderInt("Number of objects to add", &objectsToAdd, 0, 200000)){
+        if(ImGui::SliderInt("Number of objects to add", &objectsToAdd, 0, 1000000)){
         }
         std::string label = "Add " + std::to_string(objectsToAdd) + " objects";
         if(ImGui::Button(label.c_str())){
-            generateObjects(objectSize, objectsToAdd);
+            std::thread worker(generateObjects, std::ref(objectSize), std::ref(objectsToAdd));
+            worker.detach();
         }
         gravity = physicsEngine.getGravity().y;
-        if(ImGui::SliderFloat("Gravity Y", &gravity, -20, 20)){
+        if(ImGui::SliderFloat("Gravity Y", &gravity, -1, 1)){
             physicsEngine.setGravity(glm::vec2(0, gravity));
         }
         int threadCount = physicsEngine.getThreadCount();
