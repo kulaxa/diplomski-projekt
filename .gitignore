@@ -6,3 +6,5 @@ cmake-build*
 bin
 results.txt
 .idea
+venv
+graphs

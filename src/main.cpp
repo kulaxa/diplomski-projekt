@@ -18,6 +18,8 @@ std::chrono::duration<double> physicsTime = std::chrono::milliseconds(16);
 
 PhysicsEngine physicsEngine(glm::vec2(0.0, -0.1));
 
+std::ofstream outputFile;
+
 void MainLoopStep();
 
 
@@ -146,16 +148,23 @@ void generateObjects(double radius, int numObjects) {
         for (int j = 0; j < numOfObjectsInRow; j++) {
             double xPos = -(1.0 - distance) + distance * j;
             double yPos = -(1.0 - distance) + distance * i;
-            gameObjectsPositions.push_back(glm::vec2(xPos, yPos));
+           // gameObjectsPositions.push_back(glm::vec2(xPos, yPos));
+            // sleep for 10 milliseconds
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, radius);
         }
     }
     for (int i = 0; i < leftOver ; i++) {
         double xPos = -(1.0 - distance) + distance * i;
         double yPos = -(1.0 - distance) + distance * numOfRows;
-        gameObjectsPositions.push_back(glm::vec2(xPos, yPos));
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
+        physicsEngine.addGameObject(xPos, yPos, 0.0, 0.0, radius);
+        //gameObjectsPositions.push_back(glm::vec2(xPos, yPos));
     }
 
-    physicsEngine.addGameObjects(gameObjectsPositions, radius);
+    //physicsEngine.addGameObjects(gameObjectsPositions, radius);
 
 }
 
@@ -170,6 +179,15 @@ int main(int argc, char** argv) {
     glClearColor(0.0, 0.0, 0.0, 1.0);  // Black background
     gluOrtho2D(-1.0, 1.0, -1.0, 1.0);  // Set the coordinate system
 
+
+    outputFile.open("../results.txt");
+
+
+    // Check if the file is successfully opened
+    if (!outputFile.is_open()) {
+        std::cerr << "Error opening the file!" << std::endl;
+        return 1; // Return an error code
+    }
     std::atomic<bool> stopFlag(false);  // Stop flag to control thread execution
     // set nubmer of threads
 
@@ -200,6 +218,7 @@ int main(int argc, char** argv) {
     ImGui_ImplOpenGL2_Shutdown();
     ImGui_ImplGLUT_Shutdown();
     ImGui::DestroyContext();
+    outputFile.close();
 
 
     // Stop the worker thread
@@ -304,6 +323,9 @@ void MainLoopStep()
             }
 
         }
+
+        outputFile << "FPS:" << physicsTime.count() * 1000 << ";GRID_SIZE:" << physicsEngine.getGridSize() <<";PARTICLE_COUNTER:" << physicsEngine.getNumberOfGameObjects()  << ";THREAD_COUNT:"<< threadCount << std::endl;
+
 
         ImGui::End();
 
